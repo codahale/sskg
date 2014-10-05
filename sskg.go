@@ -43,7 +43,7 @@ func New(key, seed []byte, maxKeys, keySize uint) Seq {
 	return Seq{
 		nodes: []node{
 			node{
-				s: prf(int(keySize), []byte("seed"), key, seed),
+				k: prf(int(keySize), []byte("seed"), key, seed),
 				h: uint(math.Ceil(math.Log2(float64(maxKeys) + 1))),
 			},
 		},
@@ -53,29 +53,29 @@ func New(key, seed []byte, maxKeys, keySize uint) Seq {
 }
 
 // Key returns the Seq's current key.
-func (t Seq) Key() []byte {
-	return prf(t.size, []byte("key"), t.key, t.nodes[len(t.nodes)-1].s)
+func (s Seq) Key() []byte {
+	return prf(s.size, []byte("key"), s.key, s.nodes[len(s.nodes)-1].k)
 }
 
 // Next advances the Seq's current key to the next in the sequence.
 //
 // (In the literature, this function is called Evolve.)
-func (t *Seq) Next() {
-	s, h := t.pop()
+func (s *Seq) Next() {
+	k, h := s.pop()
 
 	if h > 1 {
-		t.push(prf(t.size, right, t.key, s), h-1)
-		t.push(prf(t.size, left, t.key, s), h-1)
+		s.push(prf(s.size, right, s.key, k), h-1)
+		s.push(prf(s.size, left, s.key, k), h-1)
 	}
 }
 
-// Seek moves the Seq to the k-th key without having to calculate all of the
-// intermediary keys. It is equivalent to, but faster than, k invocations of
+// Seek moves the Seq to the n-th key without having to calculate all of the
+// intermediary keys. It is equivalent to, but faster than, n invocations of
 // Next().
-func (t *Seq) Seek(k int) {
-	s, h := t.pop()
+func (s *Seq) Seek(n int) {
+	k, h := s.pop()
 
-	for k > 0 {
+	for n > 0 {
 		h--
 
 		if h <= 0 {
@@ -83,31 +83,31 @@ func (t *Seq) Seek(k int) {
 		}
 
 		pow := 1 << h
-		if k < pow {
-			t.push(prf(t.size, right, t.key, s), h)
-			s = prf(t.size, left, t.key, s)
-			k--
+		if n < pow {
+			s.push(prf(s.size, right, s.key, k), h)
+			k = prf(s.size, left, s.key, k)
+			n--
 		} else {
-			s = prf(t.size, right, t.key, s)
-			k -= pow
+			k = prf(s.size, right, s.key, k)
+			n -= pow
 		}
 	}
 
-	t.push(s, h)
+	s.push(k, h)
 }
 
-func (t *Seq) pop() ([]byte, uint) {
-	node := t.nodes[len(t.nodes)-1]
-	t.nodes = t.nodes[:len(t.nodes)-1]
-	return node.s, node.h
+func (s *Seq) pop() ([]byte, uint) {
+	node := s.nodes[len(s.nodes)-1]
+	s.nodes = s.nodes[:len(s.nodes)-1]
+	return node.k, node.h
 }
 
-func (t *Seq) push(s []byte, h uint) {
-	t.nodes = append(t.nodes, node{s: s, h: h})
+func (s *Seq) push(k []byte, h uint) {
+	s.nodes = append(s.nodes, node{k: k, h: h})
 }
 
 type node struct {
-	s []byte
+	k []byte
 	h uint
 }
 
