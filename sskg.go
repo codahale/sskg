@@ -69,19 +69,22 @@ func (t *Seq) Next() {
 // Next().
 func (t *Seq) Seek(k int) {
 	delta := k
-
 	s, h := t.pop()
 
 	for delta > 0 {
-		h = h - 1
+		h--
+		if h <= 0 {
+			panic("key space exhausted")
+		}
 
-		if delta < 1<<h {
+		pow := 1 << h
+		if delta < pow {
 			t.push(prf12(t.size, right, t.key, s), h)
 			s = prf12(t.size, left, t.key, s)
 			delta--
 		} else {
 			s = prf12(t.size, right, t.key, s)
-			delta -= 1 << h
+			delta -= pow
 		}
 	}
 
