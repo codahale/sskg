@@ -41,12 +41,10 @@ type Seq struct {
 // key size.
 func New(key, seed []byte, maxKeys, keySize uint) Seq {
 	return Seq{
-		nodes: []node{
-			node{
-				k: prf(int(keySize), []byte("seed"), key, seed),
-				h: uint(math.Ceil(math.Log2(float64(maxKeys) + 1))),
-			},
-		},
+		nodes: []node{{
+			k: prf(int(keySize), []byte("seed"), key, seed),
+			h: uint(math.Ceil(math.Log2(float64(maxKeys) + 1))),
+		}},
 		key:  key,
 		size: int(keySize),
 	}
