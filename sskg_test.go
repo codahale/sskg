@@ -37,6 +37,26 @@ func BenchmarkNext(b *testing.B) {
 	}
 }
 
+func BenchmarkNext1000(b *testing.B) {
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		seq := sskg.New(make([]byte, 32), make([]byte, 32), 1<<32, 32)
+		for j := 0; j < 1000; j++ {
+			seq.Next()
+		}
+	}
+}
+
+func BenchmarkSeek1000(b *testing.B) {
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		seq := sskg.New(make([]byte, 32), make([]byte, 32), 1<<32, 32)
+		seq.Seek(1000)
+	}
+}
+
 var (
 	expected = []byte{
 		0xf7, 0xd2, 0xf8, 0x38, 0xb0, 0x6b, 0x60, 0xe4, 0x29, 0xe1, 0x45, 0xe9,
