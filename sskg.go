@@ -3,7 +3,7 @@
 //
 // An SSKG generates a sequence of forward-secure keys (e.g., for use as
 // time-bounded authentication keys), while also providing a fast-forward
-// functionality. This package provides an HMAC-based implementation of a binary
+// functionality. This package provides an HKDF-based implementation of a binary
 // tree-based SSKG as described by Marson and Poettering:
 // https://eprint.iacr.org/2014/479.pdf.
 //
@@ -23,7 +23,12 @@
 // Marson and Poettering's tree-based SSKG can perform O(log N) seeks).
 package sskg
 
-import "math"
+import (
+	"crypto/sha256"
+	"math"
+
+	"code.google.com/p/go.crypto/hkdf"
+)
 
 // A Seq is a sequence of forward-secure keys.
 type Seq struct {
@@ -38,7 +43,7 @@ func New(key, seed []byte, maxKeys, keySize uint) Seq {
 	return Seq{
 		nodes: []node{
 			node{
-				s: prf12(int(keySize), []byte("seed"), key, seed),
+				s: prf(int(keySize), []byte("seed"), key, seed),
 				h: uint(math.Ceil(math.Log2(float64(maxKeys) + 1))),
 			},
 		},
@@ -49,7 +54,7 @@ func New(key, seed []byte, maxKeys, keySize uint) Seq {
 
 // Key returns the Seq's current key.
 func (t Seq) Key() []byte {
-	return prf12(t.size, []byte("key"), t.key, t.nodes[len(t.nodes)-1].s)
+	return prf(t.size, []byte("key"), t.key, t.nodes[len(t.nodes)-1].s)
 }
 
 // Next advances the Seq's current key to the next in the sequence.
@@ -59,8 +64,8 @@ func (t *Seq) Next() {
 	s, h := t.pop()
 
 	if h > 1 {
-		t.push(prf12(t.size, right, t.key, s), h-1)
-		t.push(prf12(t.size, left, t.key, s), h-1)
+		t.push(prf(t.size, right, t.key, s), h-1)
+		t.push(prf(t.size, left, t.key, s), h-1)
 	}
 }
 
@@ -79,11 +84,11 @@ func (t *Seq) Seek(k int) {
 
 		pow := 1 << h
 		if k < pow {
-			t.push(prf12(t.size, right, t.key, s), h)
-			s = prf12(t.size, left, t.key, s)
+			t.push(prf(t.size, right, t.key, s), h)
+			s = prf(t.size, left, t.key, s)
 			k--
 		} else {
-			s = prf12(t.size, right, t.key, s)
+			s = prf(t.size, right, t.key, s)
 			k -= pow
 		}
 	}
@@ -110,3 +115,10 @@ var (
 	right = []byte("right")
 	left  = []byte("left")
 )
+
+func prf(n int, label, secret, seed []byte) []byte {
+	buf := make([]byte, n)
+	kdf := hkdf.New(sha256.New, secret, seed, label)
+	_, _ = kdf.Read(buf)
+	return buf
+}
