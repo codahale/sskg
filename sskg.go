@@ -68,23 +68,23 @@ func (t *Seq) Next() {
 // intermediary keys. It is equivalent to, but faster than, k invocations of
 // Next().
 func (t *Seq) Seek(k int) {
-	delta := k
 	s, h := t.pop()
 
-	for delta > 0 {
+	for k > 0 {
 		h--
+
 		if h <= 0 {
 			panic("keyspace exhausted")
 		}
 
 		pow := 1 << h
-		if delta < pow {
+		if k < pow {
 			t.push(prf12(t.size, right, t.key, s), h)
 			s = prf12(t.size, left, t.key, s)
-			delta--
+			k--
 		} else {
 			s = prf12(t.size, right, t.key, s)
-			delta -= pow
+			k -= pow
 		}
 	}
 
