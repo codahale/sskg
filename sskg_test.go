@@ -27,6 +27,20 @@ func TestSeek(t *testing.T) {
 	}
 }
 
+func TestSeekTooFar(t *testing.T) {
+	defer func() {
+		e := recover()
+		if e != "keyspace exhausted" {
+			t.Errorf("Unexpected error: %v", e)
+		}
+	}()
+
+	seq := sskg.New(make([]byte, 32), make([]byte, 32), 1<<32, 32)
+	seq.Seek(1 << 33)
+
+	t.Fatal("expected to exhaust the keyspace")
+}
+
 func BenchmarkNext(b *testing.B) {
 	seq := sskg.New(make([]byte, 32), make([]byte, 32), 1<<32, 32)
 	b.ResetTimer()

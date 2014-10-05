@@ -74,7 +74,7 @@ func (t *Seq) Seek(k int) {
 	for delta > 0 {
 		h--
 		if h <= 0 {
-			panic("key space exhausted")
+			panic("keyspace exhausted")
 		}
 
 		pow := 1 << h
