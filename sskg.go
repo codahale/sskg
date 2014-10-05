@@ -28,25 +28,28 @@ import "math"
 // A Seq is a sequence of forward-secure keys.
 type Seq struct {
 	nodes []node
-	prf   PRF
+	key   []byte
+	size  int
 }
 
-// New creates a new Seq with the given seed, height, and PRF.
-func New(seed []byte, height int, prf PRF) Seq {
+// New creates a new Seq with the given key, seed, maximum number of keys, and
+// key size.
+func New(key, seed []byte, maxKeys, keySize uint) Seq {
 	return Seq{
 		nodes: []node{
 			node{
-				s: prf(key, seed),
-				h: uint(math.Ceil(math.Log2(float64(height)))),
+				s: prf12(int(keySize), []byte("seed"), key, seed),
+				h: uint(math.Ceil(math.Log2(float64(maxKeys) + 1))),
 			},
 		},
-		prf: prf,
+		key:  key,
+		size: int(keySize),
 	}
 }
 
 // Key returns the Seq's current key.
 func (t Seq) Key() []byte {
-	return t.prf(key, t.nodes[len(t.nodes)-1].s)
+	return prf12(t.size, []byte("key"), t.key, t.nodes[len(t.nodes)-1].s)
 }
 
 // Next advances the Seq's current key to the next in the sequence.
@@ -54,10 +57,10 @@ func (t Seq) Key() []byte {
 // (In the literature, this function is called Evolve.)
 func (t *Seq) Next() {
 	s, h := t.pop()
-	if h > 1 {
-		t.push(t.prf(right, s), h-1)
-		t.push(t.prf(left, s), h-1)
 
+	if h > 1 {
+		t.push(prf12(t.size, right, t.key, s), h-1)
+		t.push(prf12(t.size, left, t.key, s), h-1)
 	}
 }
 
@@ -73,11 +76,11 @@ func (t *Seq) Seek(k int) {
 		h = h - 1
 
 		if delta < 1<<h {
-			t.push(t.prf(right, s), h)
-			s = t.prf(left, s)
+			t.push(prf12(t.size, right, t.key, s), h)
+			s = prf12(t.size, left, t.key, s)
 			delta--
 		} else {
-			s = t.prf(right, s)
+			s = prf12(t.size, right, t.key, s)
 			delta -= 1 << h
 		}
 	}
@@ -95,13 +98,12 @@ func (t *Seq) push(s []byte, h uint) {
 	t.nodes = append(t.nodes, node{s: s, h: h})
 }
 
-const (
-	key   = 0
-	left  = 1
-	right = 2
-)
-
 type node struct {
 	s []byte
 	h uint
 }
+
+var (
+	right = []byte("right")
+	left  = []byte("left")
+)
