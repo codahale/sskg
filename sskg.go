@@ -24,7 +24,7 @@
 package sskg
 
 import (
-	"crypto/sha256"
+	"hash"
 	"math"
 
 	"code.google.com/p/go.crypto/hkdf"
@@ -33,26 +33,27 @@ import (
 // A Seq is a sequence of forward-secure keys.
 type Seq struct {
 	nodes []node
-	key   []byte
+	alg   func() hash.Hash
 	size  int
 }
 
-// New creates a new Seq with the given key, seed, maximum number of keys, and
-// key size.
-func New(key, seed []byte, maxKeys, keySize uint) Seq {
+// New creates a new Seq with the given hash algorithm, seed, and maximum number
+// of keys.
+func New(alg func() hash.Hash, seed []byte, maxKeys uint) Seq {
+	size := alg().Size()
 	return Seq{
 		nodes: []node{{
-			k: prf(int(keySize), []byte("seed"), key, seed),
+			k: prf(alg, size, []byte("seed"), seed),
 			h: uint(math.Ceil(math.Log2(float64(maxKeys) + 1))),
 		}},
-		key:  key,
-		size: int(keySize),
+		alg:  alg,
+		size: size,
 	}
 }
 
 // Key returns the Seq's current key.
 func (s Seq) Key() []byte {
-	return prf(s.size, []byte("key"), s.key, s.nodes[len(s.nodes)-1].k)
+	return prf(s.alg, s.size, []byte("key"), s.nodes[len(s.nodes)-1].k)
 }
 
 // Next advances the Seq's current key to the next in the sequence.
@@ -62,8 +63,8 @@ func (s *Seq) Next() {
 	k, h := s.pop()
 
 	if h > 1 {
-		s.push(prf(s.size, right, s.key, k), h-1)
-		s.push(prf(s.size, left, s.key, k), h-1)
+		s.push(prf(s.alg, s.size, right, k), h-1)
+		s.push(prf(s.alg, s.size, left, k), h-1)
 	}
 }
 
@@ -82,11 +83,11 @@ func (s *Seq) Seek(n int) {
 
 		pow := 1 << h
 		if n < pow {
-			s.push(prf(s.size, right, s.key, k), h)
-			k = prf(s.size, left, s.key, k)
+			s.push(prf(s.alg, s.size, right, k), h)
+			k = prf(s.alg, s.size, left, k)
 			n--
 		} else {
-			k = prf(s.size, right, s.key, k)
+			k = prf(s.alg, s.size, right, k)
 			n -= pow
 		}
 	}
@@ -114,9 +115,9 @@ var (
 	left  = []byte("left")
 )
 
-func prf(n int, label, secret, seed []byte) []byte {
-	buf := make([]byte, n)
-	kdf := hkdf.New(sha256.New, secret, seed, label)
+func prf(alg func() hash.Hash, size int, label, seed []byte) []byte {
+	buf := make([]byte, size)
+	kdf := hkdf.New(alg, seed, nil, label)
 	_, _ = kdf.Read(buf)
 	return buf
 }

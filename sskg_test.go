@@ -2,13 +2,14 @@ package sskg_test
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"testing"
 
 	"github.com/codahale/sskg"
 )
 
 func TestNext(t *testing.T) {
-	seq := sskg.New(make([]byte, 32), make([]byte, 32), 1<<32, 32)
+	seq := sskg.New(sha256.New, make([]byte, 32), 1<<32)
 	for i := 0; i < 10000; i++ {
 		seq.Next()
 	}
@@ -19,7 +20,7 @@ func TestNext(t *testing.T) {
 }
 
 func TestSeek(t *testing.T) {
-	seq := sskg.New(make([]byte, 32), make([]byte, 32), 1<<32, 32)
+	seq := sskg.New(sha256.New, make([]byte, 32), 1<<32)
 	seq.Seek(10000)
 
 	if v := seq.Key(); !bytes.Equal(expected, v) {
@@ -35,14 +36,14 @@ func TestSeekTooFar(t *testing.T) {
 		}
 	}()
 
-	seq := sskg.New(make([]byte, 32), make([]byte, 32), 1<<32, 32)
+	seq := sskg.New(sha256.New, make([]byte, 32), 1<<32)
 	seq.Seek(1 << 33)
 
 	t.Fatal("expected to exhaust the keyspace")
 }
 
 func BenchmarkNext(b *testing.B) {
-	seq := sskg.New(make([]byte, 32), make([]byte, 32), 1<<32, 32)
+	seq := sskg.New(sha256.New, make([]byte, 32), 1<<32)
 	b.ResetTimer()
 	b.ReportAllocs()
 
@@ -55,7 +56,7 @@ func BenchmarkNext1000(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		seq := sskg.New(make([]byte, 32), make([]byte, 32), 1<<32, 32)
+		seq := sskg.New(sha256.New, make([]byte, 32), 1<<32)
 		for j := 0; j < 1000; j++ {
 			seq.Next()
 		}
@@ -66,15 +67,15 @@ func BenchmarkSeek1000(b *testing.B) {
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		seq := sskg.New(make([]byte, 32), make([]byte, 32), 1<<32, 32)
+		seq := sskg.New(sha256.New, make([]byte, 32), 1<<32)
 		seq.Seek(1000)
 	}
 }
 
 var (
 	expected = []byte{
-		0x7e, 0x08, 0x05, 0x55, 0x9a, 0x93, 0xc8, 0x9f, 0x17, 0x8f, 0x7f, 0x0a,
-		0x8a, 0x05, 0xa7, 0x52, 0x10, 0xd2, 0x7d, 0x54, 0xb4, 0x8d, 0x42, 0xda,
-		0x27, 0x44, 0x2d, 0x83, 0xaf, 0x3f, 0xf4, 0xfc,
+		0x46, 0x36, 0x7f, 0x8f, 0x2b, 0x62, 0xc8, 0x4d, 0x8d, 0x40, 0xb5, 0x36,
+		0x7b, 0xac, 0x77, 0xc8, 0xae, 0xb2, 0xde, 0x72, 0x7e, 0x50, 0xb5, 0x1a,
+		0x9e, 0xae, 0x22, 0xa3, 0xe0, 0x21, 0xb4, 0x6f,
 	}
 )
