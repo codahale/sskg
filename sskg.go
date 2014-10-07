@@ -1,26 +1,20 @@
 // Package sskg provides a Go implementation of Seekable Sequential Key
-// Generators (SSKGs).
+// Generators (SSKGs). Specifically, this package provides an HKDF-based
+// implementation of a binary tree-based SSKG as described by Marson and
+// Poettering (https://eprint.iacr.org/2014/479.pdf) which features fast key
+// advancing (~6μs) and low memory usage (O(log N)).
 //
-// An SSKG generates a sequence of forward-secure keys (e.g., for use as
-// time-bounded authentication keys), while also providing a fast-forward
-// functionality. This package provides an HKDF-based implementation of a binary
-// tree-based SSKG as described by Marson and Poettering:
-// https://eprint.iacr.org/2014/479.pdf.
+// An example of SSKG usage is cryptographically protected local logs. In this
+// scenario, logs on a computer are secured via MACs. If the MAC key is
+// constant, an attacker can extract the key and forge or modify log entries in
+// the past.
 //
-// The canonical example of SSKG usage is cryptographically protected local
-// logs. In this scenario, we have logs on a computer which are secured via
-// MACs. If the MAC key is constant, an attacker can extract the key and forge
-// or modify log entries in the past. The traditional solution to this is to use
-// a foward-secure solution like a hash chain (e.g., K1 = H(K0); K2 =
-// H(K1)). This ensures that an attacker who compromises the state of the logger
-// cannot establish the state of the logger at an arbitrary point in time in the
-// past (and therefore cannot forge log entries in the past).
-//
-// The use of hash chains presents a large computational expense to the
-// auditors, however. In order to verify the MAC using the Nth key, the auditor
-// must calculate (N-1) hashes, which may be cumbersome. An SSKG, in contrast,
-// allows quickly seeking forward to arbitrary points of time (specifically,
-// Marson and Poettering's tree-based SSKG can perform O(log N) seeks).
+// The traditional solution to this is to use a foward-secure solution like a
+// hash chain, but this presents a large computational expense to auditors: in
+// order to verify the MAC using the Nth key, the auditor must calculate N-1
+// hashes, which may be cumbersome. An SSKG, in contrast, allows quickly seeking
+// forward to arbitrary points of time (specifically, Marson and Poettering's
+// tree-based SSKG can perform O(log N) seeks).
 package sskg
 
 import (
@@ -68,8 +62,8 @@ func (s *Seq) Next() {
 	}
 }
 
-// Seek moves the Seq to the n-th key without having to calculate all of the
-// intermediary keys. It is equivalent to, but faster than, n invocations of
+// Seek moves the Seq to the N-th key without having to calculate all of the
+// intermediary keys. It is equivalent to, but faster than, N invocations of
 // Next().
 func (s *Seq) Seek(n int) {
 	k, h := s.pop()
