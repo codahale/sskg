@@ -45,9 +45,9 @@ func New(alg func() hash.Hash, seed []byte, maxKeys uint) Seq {
 	}
 }
 
-// Key returns the Seq's current key.
-func (s Seq) Key() []byte {
-	return prf(s.alg, s.size, []byte("key"), s.nodes[len(s.nodes)-1].k)
+// Key returns the Seq's current key of the given size.
+func (s Seq) Key(size int) []byte {
+	return prf(s.alg, size, []byte("key"), s.nodes[len(s.nodes)-1].k)
 }
 
 // Next advances the Seq's current key to the next in the sequence.

@@ -14,7 +14,7 @@ func TestNext(t *testing.T) {
 		seq.Next()
 	}
 
-	if v := seq.Key(); !bytes.Equal(expected, v) {
+	if v := seq.Key(32); !bytes.Equal(expected, v) {
 		t.Errorf("Key was %#v, but expected %#v", v, expected)
 	}
 }
@@ -23,7 +23,7 @@ func TestSeek(t *testing.T) {
 	seq := sskg.New(sha256.New, make([]byte, 32), 1<<32)
 	seq.Seek(10000)
 
-	if v := seq.Key(); !bytes.Equal(expected, v) {
+	if v := seq.Key(32); !bytes.Equal(expected, v) {
 		t.Errorf("Key was %#v, but expected %#v", v, expected)
 	}
 }
