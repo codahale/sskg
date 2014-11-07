@@ -21,7 +21,7 @@ import (
 	"hash"
 	"math"
 
-	"code.google.com/p/go.crypto/hkdf"
+	"golang.org/x/crypto/hkdf"
 )
 
 // A Seq is a sequence of forward-secure keys.
